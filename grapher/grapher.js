@@ -116,7 +116,7 @@ function flatten(json_dat){
   return temp;
 }
 
-function node_gen(data, exp, protein){
+function node_gen(data){
   var temp = [];
   for(var i = 0; i < height*width; i++){
     temp.push({
