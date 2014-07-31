@@ -1,6 +1,7 @@
 import pandas
-import numpy
+import sys
 import json
+import argparse
 
 def data_reshape(data, proteins, cell_lines, tf, start=0):
 	columns = cell_lines * 2
@@ -30,11 +31,46 @@ def L_or_S_to_JSON(csv, proteins, cell_lines, tf, lambdas, output):
 	data_dict = dict()
 	rows_per_lambda = proteins * tf
 	for i, lam in enumerate(lambdas):
-		print i,lam
 		start_row = i * rows_per_lambda
 		end_row = start_row + rows_per_lambda
-		print start_row,end_row
 		data_dict[lam] = data_reshape(matrix[start_row:end_row],
 			proteins, cell_lines, tf, start_row)
 	with open(output, "w") as outfile:
 		json.dump(data_dict, outfile)
+
+def proccess_all_data(lambdas, M, L, S, proteins, cell_lines, tf):
+	lambda_lines = file(lambdas).readlines()
+	lambdas = [x.strip() for x in lambda_lines]
+	maxes = [pandas.read_csv(x).max().max() for x in [M,L,S]]
+	mins =  [pandas.read_csv(x).min().min() for x in [M,L,S]]
+	maxes.sort()
+	mins.sort()
+	max_value = maxes[-1]
+	min_value = mins[0]
+	M_to_JSON(M, proteins, cell_lines, tf, "M.json")
+	L_or_S_to_JSON(L, proteins, cell_lines, tf, lambdas, "L.json")
+	L_or_S_to_JSON(S, proteins, cell_lines, tf, lambdas, "S.json")
+	with open("lambdas.json", "w") as outfile:
+		json.dump(lambdas, outfile)
+	with open("max_min.json", "w") as outfile:
+		json.dump({"max_value": max_value, 
+				   "min_value": min_value}, outfile)
+
+def main(args=None):
+	p = argparse.ArgumentParser()
+	p.add_argument("lambdas")
+	p.add_argument("M")
+	p.add_argument("L")
+	p.add_argument("S")
+	p.add_argument("proteins")
+	p.add_argument("cell_lines")
+	p.add_argument("tf")
+	if args == None:
+		args = p.parse_args(sys.argv[1:])
+	else:
+		args = p.parse_args(args)
+	proccess_all_data(args.lambdas, args.M, args.L, args.S, int(args.proteins), int(args.cell_lines), int(args.tf))
+
+if __name__ == '__main__':
+    main()
+
