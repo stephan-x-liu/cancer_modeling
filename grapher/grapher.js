@@ -76,7 +76,6 @@ $(function(){
   });
   $.getJSON("M.json?callback=ret", null, function(datas){
     Mdat = datas;
-    console.log(Mdat)
     for(var i = 0; i < 15; i++){
       draw_block(node_gen(Mdat[i], i, 0), svg);
     }
@@ -105,8 +104,8 @@ function run(){
   L_init = Ldat[lambdas[0]];
   for(var i = 0; i < 15; i++){
     draw_block(node_gen(Mdat[i], i, 0));
-    draw_block(node_gen(L_init[i], i, 0));
-    draw_block(node_gen(S_init[i], i, 0));
+    draw_block(node_gen(L_init[i], i, 1));
+    draw_block(node_gen(S_init[i], i, 2));
   }
 }
 function ret(data){
@@ -114,7 +113,6 @@ function ret(data){
 }
 
 function node_gen(data, cell_line, ty){
-  console.log(data)
   var temp = [];
   for(var i = 0; i < height; i++){
     for(var k = 0; k < width; k++)
@@ -220,7 +218,6 @@ function draw_block(nodes, svg){
 
 function update(data){
   var i = -1;
-  console.log(svg.selectAll('rect'))
   svg.selectAll('rect').transition().style('fill', function(n){
     return color(data[n.type][n.z][n.y][n.x]*1000);
   });
