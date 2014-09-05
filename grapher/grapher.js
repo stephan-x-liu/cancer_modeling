@@ -1,25 +1,37 @@
 
 
-var height = 7;
-var width =18; // square root of number of nodes
-var pheight = 12;
-var pwidth = 3; //size of each node (pixel)
-var margin = 40;
+var height;
+var width;
+var tf = 9;
+var pheight = 12; // height of each node (pixels)
+var pwidth = 3; // width of each node (pixel)
+var margin = 42; // space between cell lines
 var nodes = [];
 var data = [];
-var w = width * pwidth;
-var h = height * pheight;
+var num_cell_lines;
+var w;
+var h;
+var dmso;
+var lap;
+var total_width;
 var color = d3.scale.linear()
   .range(["#a50026","#ffffbf","#74add1"]);
 var M;
 var S;
 var L;
+var i;
 var Mdat;
 var Ldat;
 var Sdat;
 var max = -10000;
 var min = 10000;
 var lambdas;
+var lambda;
+var drag = d3.behavior.drag()
+  .origin(function(d) {return {x: x_scale(d)}})
+  .on("dragstart", dragstart)
+  .on("drag", drag)
+  .on("dragend", dragend);
 cell_lines_names = [
   'AU 565',
   'BT 474',
@@ -47,11 +59,27 @@ protein_names = [
   'S6_pS235',
   'S6_pS240'
 ]
-
+var x_scale;
 
 $(function(){
-  svg = svg_init();
-
+  $( "#all_button" ).click(function(){
+    d3.select("svg").remove();
+    L_init = Ldat[lambda];
+    S_init = Sdat[lambda];
+    draw_all();
+  })
+  $( "#dmso_button" ).click(function(){
+    d3.select("svg").remove();
+    L_init = Ldat[lambda];
+    S_init = Sdat[lambda];  
+    draw_dmso();
+  })
+  $( "#lap_button" ).click(function(){
+    d3.select("svg").remove();
+    L_init = Ldat[lambda];
+    S_init = Sdat[lambda];
+    draw_lap();
+  })
   $( "#slider" ).slider({
     value:0,
     min: 0,
@@ -69,82 +97,87 @@ $(function(){
     max = parseFloat(datas['max_value']);
     min = parseFloat(datas['min_value']);
     color.domain([min*1000, (max+min)/2*1000, max*1000])
-  })
+  });
+
   $.getJSON("lambdas.json?callback=ret", null, function(datas){
     lambdas = datas;
-    $( "#lambda" ).val( ""+ lambdas[$( "#slider" ).slider("value")] );
+    lambda = lambdas[$( "#slider" ).slider("value")];
+    $( "#lambda" ).val( ""+ lambda );
   });
+
   $.getJSON("M.json?callback=ret", null, function(datas){
     Mdat = datas;
-    for(var i = 0; i < 15; i++){
-      draw_block(node_gen(Mdat[i], i, 0), svg);
-    }
-  });
-  $.getJSON("L.json?callback=ret", null, function(datas){
-    Ldat = datas;
-    L_init = Ldat[lambdas[0]]
-    for(var i = 0; i < 15; i++){
-      draw_block(node_gen(L_init[i], i, 1), svg);
-    }
-  });
-  $.getJSON("S.json?callback=ret", null, function(datas){
-    Sdat = datas;
-    S_init = Sdat[lambdas[0]]
-    for(var i = 0; i < 15; i++){
-      draw_block(node_gen(S_init[i], i, 2), svg);
-    }
+    $.getJSON("L.json?callback=ret", null, function(datas){
+      Ldat = datas;
+      L_init = Ldat[lambdas[0]]
+      $.getJSON("S.json?callback=ret", null, function(datas){
+        Sdat = datas;
+        S_init = Sdat[lambdas[0]]
+        draw(cell_lines_names, ["DMSO", "LAP"], protein_names);
+      });
+    }); 
   });
 });
 
-function run(){
+function draw(cell_line_names, exp_names, protein_names){
+  width = exp_names.length * tf;
+  height = protein_names.length;
+  w = width * pwidth;
+  h = height * pheight;
+  num_cell_lines = cell_lines_names.length;
+  total_width = num_cell_lines * w + (num_cell_lines * (margin - 1));
+  x_scale = d3.scale.ordinal().domain(cell_lines_names).rangePoints([margin, total_width-margin+1]);
   
-
-  
-  S_init = Sdat[lambdas[0]];
-  L_init = Ldat[lambdas[0]];
-  for(var i = 0; i < 15; i++){
-    draw_block(node_gen(Mdat[i], i, 0));
-    draw_block(node_gen(L_init[i], i, 1));
-    draw_block(node_gen(S_init[i], i, 2));
+  svg = svg_init();
+  svg.selectAll('g')
+    .data(cell_lines_names)
+  .enter().append('svg:g')
+    .attr('class', 'cell-line')
+    .attr('id', function(d) {return d.replace(/ /g,'');})
+    .attr('cell_line', function(d) {return d;})
+    .call(drag);
+  for(var i = 0; i < num_cell_lines; i++){
+    M_nodes = node_gen(Mdat[cell_lines_names[i]], i, cell_lines_names[i], protein_names, exp_names, 0);
+    L_nodes = node_gen(L_init[cell_lines_names[i]], i, cell_lines_names[i], protein_names, exp_names, 1);
+    S_nodes = node_gen(S_init[cell_lines_names[i]], i, cell_lines_names[i], protein_names, exp_names, 2);
+    temp = draw_cell_line(M_nodes, L_nodes, S_nodes, svg, cell_lines_names[i], protein_names, exp_names);
   }
 }
+
 function ret(data){
   return data;
 }
 
-function node_gen(data, cell_line, ty){
+function node_gen(data, line_number, cell_line, protein_names, exp_names, ty){
   var temp = [];
-  for(var i = 0; i < height; i++){
-    for(var k = 0; k < width; k++)
-    temp.push({
-      x: k,
-      y: i,
-      z: cell_line,
-      type: ty,
-      id: "x"+k+"y"+i+"z"+cell_line+"t"+ty,
-      value: (data[i][k]*1000)
-    });
+  for(var i = 0; i < protein_names.length; i++){
+    for(var k = 0; k < exp_names.length; k++){
+      for(var j = 0; j < tf; j++){
+        temp.push({
+          x: j + k * tf,
+          y: i,
+          tf: j,
+          z: line_number,
+          cell_line: cell_line,
+          protein: protein_names[i],
+          exp: exp_names[k],
+          type: ty,
+          value: data[protein_names[i]][exp_names[k]][j] * 1000
+        });
+      }
+    }
   }
   return temp;
 }
 
-function cell_line_labels(){
-  labels = []
-  for(var i = 0; i < cell_lines_names.length; i++){
-    labels.push({
-      line: i,
-      label: cell_lines_names[i]
-    });
-  }
-  return labels;
-}
 
-function protein_labels(){
+function create_labels(names){
   labels = []
-  for(var i = 0; i < protein_names.length; i++){
+  console.log(names)
+  for(var i = 0; i < names.length; i++){
     labels.push({
       number: i,
-      label: protein_names[i]
+      label: names[i]
     });
   }
   return labels;
@@ -157,47 +190,49 @@ function rgb(array){
 function svg_init(){
   var div = d3.select('body').select('#svg-div');
   var svg = div.append('svg')
-      .attr('width', (margin*16)+(pwidth*width*15))
-      .attr('height', (margin*4)+(pheight*height*3))
+      .attr('width', (margin*16)+(w*15))
+      .attr('height', (margin*4)+(h*3))
       .attr('preserveAspectRatio','xMidYMin')
       .style("border-radius","10px")
       .style("border","1px solid black")
       .style('display','block')
       .style('margin','auto');
-  svg.selectAll('text')
-      .data(cell_line_labels())
-      .enter().append('text')
-        .text(function(node){return node.label;})
-        .attr('y', margin/2)
-        .attr('x', function(node){
-          return margin + (margin+(pwidth*width))*node.line;
-        })
-        .attr('cell_line', function(node){return node.line;})
-        .style('font','12px times');
   return svg;
 }
-function draw_block(nodes, svg){
-  var group = svg.append('g')
-    .attr('transform', transform_str(nodes));
-  
-  group.append('text')
-      .attr('y', -3)
-      .attr('x', 0)
-      .text("DMSO")
-      .style('font','6px times');
 
-  group.append('text')
-      .attr('y', -3)
-      .attr('x', pwidth*width/2)
-      .text("LAP")
-      .style('font','6px times');
 
-  group.selectAll('text2')
-      .data(protein_labels())
+
+function draw_cell_line(m_nodes, l_nodes, s_nodes, svg, cell_line, protein_names, exp_names){
+  var group = svg.select("#"+cell_line.replace(/ /g,''));
+  group.attr('transform', transform_str_x(m_nodes));
+  group.append('text')
+    .text(cell_line)
+    .attr('y', 20)
+    .attr('x', 0)
+    .style('font','8px times');
+  draw_block(m_nodes, group, protein_names, exp_names);
+  draw_block(l_nodes, group, protein_names, exp_names);
+  draw_block(s_nodes, group, protein_names, exp_names);
+  return group;
+}
+
+function draw_block(nodes, g, protein_names, exp_names){
+  var group = g.append('g')
+    .attr('transform', transform_str_y(nodes));
+  group.selectAll('text')
+      .data(create_labels(protein_names))
       .enter().append('text')
         .text(function(node){return node.label;})
         .attr('y', function(node){return node.number * pheight + pheight/3})
         .attr('x', margin * -1 + 2)
+        .style('font','6px times');
+
+  group.selectAll('text2')
+      .data(create_labels(exp_names))
+      .enter().append('text')
+        .text(function(node){return node.label;})
+        .attr('y', -3)
+        .attr('x', function(node){return node.number * pwidth * tf})
         .style('font','6px times');
 
   var nodes = group.selectAll('rect')
@@ -213,20 +248,38 @@ function draw_block(nodes, svg){
   return nodes;
 }
 
-
-   
-
 function update(data){
-  var i = -1;
   svg.selectAll('rect').transition().style('fill', function(n){
-    return color(data[n.type][n.z][n.y][n.x]*1000);
+    return color(data[n.type][n.cell_line][n.protein][n.exp][n.tf]*1000);
   });
 }
 
-function transform_str(nodes){
-  var x_transform = nodes[0].z * (pwidth * width + margin) + margin;
-  var y_transform = nodes[0].type * (pheight * height + margin) + margin;
-  return 'translate(' + x_transform +', ' + y_transform + ')';
+function transform_str_x(nodes){
+  var x_transform = nodes[0].z * (w + margin) + margin;
+  return 'translate(' + x_transform +')';
 }
 
+function transform_str_y(nodes){
+  var y_transform = nodes[0].type * (pheight * height + margin) + margin;
+  return 'translate(0, ' + y_transform + ')';
+}
+
+/********************************************************************************/
+//DRAGGING//
+function dragstart(d) {
+  i = cell_lines_names.indexOf(d);
+}
+
+function drag(d) {
+  x_scale.range()[i] = d3.event.x;
+  cell_lines_names.sort(function(a, b) {return x_scale(a) - x_scale(b)});
+  svg.selectAll(".cell-line").attr("transform", function(d) { return "translate(" + x_scale(d) + ")"; });
+}
+
+function dragend(d) {
+  x_scale.domain(cell_lines_names).rangePoints([margin, total_width - margin + 1]);
+  var t = d3.transition().duration(500);
+  t.selectAll(".cell-line").attr("transform", function(d) {return "translate(" + x_scale(d) +")";});
+}
+/********************************************************************************/
 
