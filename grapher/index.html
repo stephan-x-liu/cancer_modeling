@@ -14,7 +14,22 @@
 
 </head>
 <style>
-  
+  #sortable1, #sortable2 {
+    border: 1px solid #eee;
+    width: 142px;
+    height: 200px;
+    list-style-type: none;
+    margin: 0;
+    display: inline-block;
+    padding: 5px 0 0 0;
+    overflow: scroll;
+  }
+  #sortable1 li, #sortable2 li {
+    margin: 0 2px 2px 2px;
+    padding: 1px;
+    font-size: 8px;
+    width: 120px;
+  }
 </style>
 <body>
 
@@ -33,8 +48,14 @@
   <input type="text" id="lambda" style="width: 45px; border:0; color:#f6931f; font-weight:bold;">
 </div>
 <div align = "center">
-<div id = "slider" style = "width: 500px"></div>
+  <div id = "slider" style = "width: 500px"></div>
 </div>
-
-
+<div align = "center">
+  <button id = "redraw_button">Redraw</button>
+</div>
+<div align = "center">
+<ul id="sortable1" class="connectedSortable">Hidden Proteins</ul>
+   
+<ul id="sortable2" class="connectedSortable">Displayed Proteins</ul>
+</div>
 </body>

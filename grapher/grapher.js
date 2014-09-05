@@ -32,58 +32,56 @@ var drag = d3.behavior.drag()
   .on("dragstart", dragstart)
   .on("drag", drag)
   .on("dragend", dragend);
-cell_lines_names = [
-  'AU 565',
-  'BT 474',
-  'HCC 1569',
-  'HCC 1954',
-  'HCC 202',
-  'HCC 70',
-  'MCF 7',
-  'MDA MB 175',
-  'MDA MB 231',
-  'MDA MB 361',
-  'MDA MB 453',
-  'SKBR3',
-  'SUM 190PT',
-  'SUM 225CWN',
-  'UACC 812'
-];
-
-protein_names = [
-  'AKT_pS473',
-  'AKT_pT308',
-  'EGFR_pY1173',
-  'p85_PI3K',
-  'PDK1_pS241',
-  'S6_pS235',
-  'S6_pS240'
-]
+var cell_lines_names;
+var all_protein_names;
+var protein_names;
+var exp_names;
 var x_scale;
 
 $(function(){
+  $( "#sortable1, #sortable2" ).sortable({
+    connectWith: ".connectedSortable"
+  }).disableSelection();
   $( "#all_button" ).click(function(){
     d3.select("svg").remove();
     L_init = Ldat[lambda];
     S_init = Sdat[lambda];
-    draw_all();
-  })
+    exp_names = ["DMSO", "LAP"];
+    draw(cell_lines_names, exp_names, protein_names);
+  });
+
   $( "#dmso_button" ).click(function(){
     d3.select("svg").remove();
     L_init = Ldat[lambda];
-    S_init = Sdat[lambda];  
-    draw_dmso();
-  })
+    S_init = Sdat[lambda];
+    exp_names = ["DMSO"];
+    draw(cell_lines_names, exp_names, protein_names);
+  });
+
   $( "#lap_button" ).click(function(){
     d3.select("svg").remove();
     L_init = Ldat[lambda];
     S_init = Sdat[lambda];
-    draw_lap();
-  })
+    exp_names = ["LAP"];
+    draw(cell_lines_names, exp_names, protein_names);
+  });
+
+  $( "#redraw_button" ).click(function(){
+    d3.select("svg").remove();
+    L_init = Ldat[lambda];
+    S_init = Sdat[lambda];
+    var children = $("#sortable2").children();
+    protein_names = new Array(children.length);
+    for (var i = 0; i < protein_names.length; i++){
+      protein_names[i] = children[i].innerText;
+    }
+    draw(cell_lines_names, exp_names, protein_names);
+  });
+
   $( "#slider" ).slider({
     value:0,
     min: 0,
-    max: 15,
+    max: 28,
     step: 1,
     slide: function( event, ui ) {
       lambda = lambdas[ui.value];
@@ -113,7 +111,25 @@ $(function(){
       $.getJSON("S.json?callback=ret", null, function(datas){
         Sdat = datas;
         S_init = Sdat[lambdas[0]]
-        draw(cell_lines_names, ["DMSO", "LAP"], protein_names);
+        cell_lines_names = Object.keys(Mdat);
+        all_protein_names = Object.keys(Mdat[cell_lines_names[0]]);
+        if (all_protein_names.length > 5){
+          protein_names = new Array(5);
+          for (var i = 0; i < 5; i++){
+            protein_names[i] = all_protein_names[i];
+          }
+          for (var i = 5; i < all_protein_names.length; i++){
+            $("#sortable1").append("<li>"+all_protein_names[i]+"</li>");
+          }
+        }
+        else{
+          protein_names = all_protein_names;
+        }
+        for(var i = 0; i < protein_names.length; i++){
+          $("#sortable2").append("<li>"+protein_names[i]+"</li>");
+        }
+        exp_names = ["DMSO", "LAP"];
+        draw(cell_lines_names, exp_names, protein_names);
       });
     }); 
   });
@@ -173,7 +189,6 @@ function node_gen(data, line_number, cell_line, protein_names, exp_names, ty){
 
 function create_labels(names){
   labels = []
-  console.log(names)
   for(var i = 0; i < names.length; i++){
     labels.push({
       number: i,
