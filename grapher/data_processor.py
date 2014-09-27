@@ -45,6 +45,7 @@ def L_or_S_to_JSON(csv, proteins, cell_lines, tf, exps, lambdas, output, t_csv):
 	with open(output, "w") as outfile:
 		json.dump(data_dict, outfile)
 	return max_value, min_value
+	
 
 def proccess_all_data(lambdas, M, L, S, T, proteins, cell_lines, tf, exps):
 	lambda_lines = file(lambdas).readlines()
@@ -64,7 +65,7 @@ def proccess_all_data(lambdas, M, L, S, T, proteins, cell_lines, tf, exps):
 		json.dump(lambdas, outfile)
 	with open("max_min.json", "w") as outfile:
 		json.dump({"max_value": max_value, 
-				   "min_value": min_value}, outfile)
+					"min_value": min_value}, outfile)
 
 def main(args=None):
 	p = argparse.ArgumentParser()

@@ -15,7 +15,7 @@ var dmso;
 var lap;
 var total_width;
 var color = d3.scale.linear()
-  .range(["#a50026","#ffffbf","#74add1"]);
+  .range(['rgb(254,230,206)','rgb(253,174,107)','rgb(230,85,13)']);
 var M;
 var S;
 var L;
@@ -94,7 +94,7 @@ $(function(){
   $.getJSON("max_min.json?callback=ret", null, function(datas){
     max = parseFloat(datas['max_value']);
     min = parseFloat(datas['min_value']);
-    color.domain([min*1000, (max+min)/2*1000, max*1000])
+    color.domain([min*1000, (min + max)/2 * 1000, max*1000])
   });
 
   $.getJSON("lambdas.json?callback=ret", null, function(datas){
@@ -136,7 +136,7 @@ $(function(){
 });
 
 function draw(cell_line_names, exp_names, protein_names){
-  width = exp_names.length * tf;
+  width = exp_names.length * tf + exp_names.length;
   height = protein_names.length;
   w = width * pwidth;
   h = height * pheight;
@@ -170,7 +170,7 @@ function node_gen(data, line_number, cell_line, protein_names, exp_names, ty){
     for(var k = 0; k < exp_names.length; k++){
       for(var j = 0; j < tf; j++){
         temp.push({
-          x: j + k * tf,
+          x: j + k * tf + k,
           y: i,
           tf: j,
           z: line_number,
@@ -247,7 +247,7 @@ function draw_block(nodes, g, protein_names, exp_names){
       .enter().append('text')
         .text(function(node){return node.label;})
         .attr('y', -3)
-        .attr('x', function(node){return node.number * pwidth * tf})
+        .attr('x', function(node){return node.number * pwidth * (tf + 1)})
         .style('font','6px times');
 
   var nodes = group.selectAll('rect')

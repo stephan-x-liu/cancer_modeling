@@ -6,7 +6,6 @@ import pandas
 import ecos
 
 
-
 def diag(offset, a, n):
 	if isinstance(a,list):
 		a_matrices = a
